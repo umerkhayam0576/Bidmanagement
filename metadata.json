@@ -1,0 +1,6 @@
+{
+  "name": "REFAY",
+  "description": "Production-ready multi-business management platform and personal wealth command center: Manage Everything You Own.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
