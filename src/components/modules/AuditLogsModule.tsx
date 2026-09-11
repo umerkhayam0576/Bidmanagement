@@ -56,10 +56,10 @@ export function getChronologicalLogs(
 
   // Sort descending by timestamp (newest first)
   const sorted = [...filtered].sort((a, b) => {
-    const timeA = new Date(a.timestamp.replace(' ', 'T')).getTime();
-    const timeB = new Date(b.timestamp.replace(' ', 'T')).getTime();
+    const timeA = new Date((a.timestamp || '').replace(' ', 'T')).getTime();
+    const timeB = new Date((b.timestamp || '').replace(' ', 'T')).getTime();
     if (isNaN(timeA) || isNaN(timeB)) {
-      return b.timestamp.localeCompare(a.timestamp);
+      return (b.timestamp || '').localeCompare(a.timestamp || '');
     }
     return timeB - timeA;
   });
@@ -85,7 +85,7 @@ export const AuditLogsModule: React.FC = () => {
     const rows = filtered.map((l) => [
       l.timestamp,
       `"${l.user}"`,
-      `"${l.action.replace(/"/g, '""')}"`,
+      `"${(l.action || '').replace(/"/g, '""')}"`,
       `"${l.entity}"`,
       `"${l.businessName || 'General'}"`,
       l.ipAddress

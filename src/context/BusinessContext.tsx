@@ -27,7 +27,17 @@ import {
   Message,
   AppNotification,
   AuditLog,
-  CurrencyCode
+  CurrencyCode,
+  Bid,
+  BidStage,
+  RFI,
+  RfiStatus,
+  Deliverable,
+  DeliverableStatus,
+  ResponseRecord,
+  MaterialCostItem,
+  LaborCostItem,
+  AttendanceRecord
 } from '../types';
 import {
   initialBusinesses,
@@ -55,9 +65,24 @@ import {
   initialNotifications,
   initialAuditLogs
 } from '../data/mockData';
+import {
+  initialBids,
+  initialRfis,
+  initialDeliverables,
+  initialResponses,
+  initialMaterialCosts,
+  initialLaborCosts,
+  initialAttendanceRecords
+} from '../data/engineeringBiddingData';
 
 export type NavigationTab =
   | 'overview'
+  | 'bid-board'
+  | 'rfis'
+  | 'deliverables'
+  | 'responses'
+  | 'pricing-hub'
+  | 'attendance'
   | 'personal-wealth'
   | 'partners'
   | 'crm'
@@ -73,6 +98,22 @@ export type NavigationTab =
   | 'audit-logs'
   | 'settings';
 
+export const DEFAULT_ROLE_PERMISSIONS: Record<string, NavigationTab[]> = {
+  ENGINEERING: ['overview', 'bid-board', 'rfis', 'deliverables', 'responses', 'pricing-hub', 'attendance', 'projects', 'hr-payroll', 'finance', 'clients', 'messages', 'documents'],
+  SALES: ['overview', 'bid-board', 'pricing-hub', 'attendance', 'crm', 'clients', 'billing', 'projects', 'hr-payroll', 'finance', 'messages', 'documents'],
+  HR: ['overview', 'attendance', 'hr-payroll', 'clients', 'documents', 'messages', 'finance', 'projects'],
+  OPERATIONS: ['overview', 'bid-board', 'rfis', 'deliverables', 'responses', 'pricing-hub', 'attendance', 'projects', 'inventory', 'clients', 'documents', 'messages', 'finance', 'hr-payroll'],
+  FINANCE: ['overview', 'pricing-hub', 'finance', 'billing', 'hr-payroll', 'reports', 'clients', 'documents', 'messages', 'attendance'],
+  MARKETING: ['overview', 'bid-board', 'crm', 'projects', 'clients', 'messages', 'documents', 'hr-payroll', 'finance', 'attendance'],
+  PRODUCT: ['overview', 'rfis', 'deliverables', 'pricing-hub', 'attendance', 'projects', 'clients', 'messages', 'documents', 'hr-payroll', 'finance'],
+  DESIGN: ['overview', 'deliverables', 'rfis', 'attendance', 'projects', 'clients', 'messages', 'documents', 'hr-payroll', 'finance'],
+  LEGAL: ['overview', 'bid-board', 'documents', 'clients', 'messages', 'hr-payroll', 'finance', 'audit-logs', 'attendance'],
+  CUSTOMER_SUCCESS: ['overview', 'deliverables', 'responses', 'crm', 'clients', 'messages', 'projects', 'hr-payroll', 'finance', 'attendance'],
+  EXECUTIVE: ['overview', 'bid-board', 'rfis', 'deliverables', 'responses', 'pricing-hub', 'attendance', 'crm', 'clients', 'billing', 'projects', 'hr-payroll', 'finance', 'inventory', 'reports', 'documents', 'messages', 'audit-logs', 'partners'],
+  CLIENT: ['overview', 'projects', 'billing', 'deliverables', 'rfis', 'messages'],
+  GENERAL: ['overview', 'bid-board', 'rfis', 'deliverables', 'responses', 'pricing-hub', 'attendance', 'projects', 'hr-payroll', 'finance', 'clients', 'messages', 'documents']
+};
+
 interface BusinessContextType {
   businesses: Business[];
   activeBusinessId: string | 'CONSOLIDATED';
@@ -80,7 +121,13 @@ interface BusinessContextType {
   userProfiles: UserProfile[];
   currentUser: UserProfile;
   isEmployee: boolean;
+  isClient: boolean;
+  isHr: boolean;
+  isFinance: boolean;
+  isExecutive: boolean;
   currentEmployee: Employee | null;
+  currentClient: Client | null;
+  portalType: 'EXECUTIVE' | 'EMPLOYEE' | 'CLIENT' | 'HR' | 'FINANCE';
   activeTab: NavigationTab;
   setActiveTab: (tab: NavigationTab) => void;
   switchBusiness: (id: string | 'CONSOLIDATED') => void;
@@ -89,6 +136,18 @@ interface BusinessContextType {
   addBusiness: (data: Omit<Business, 'id' | 'createdAt'>) => void;
   updateBusiness: (id: string, updates: Partial<Business>) => void;
   formatCurrency: (amount: number, currency?: CurrencyCode) => string;
+
+  // Permissions Manager
+  rolePermissions: Record<string, NavigationTab[]>;
+  employeePermissions: Record<string, NavigationTab[]>;
+  toggleRolePermission: (role: string, module: NavigationTab) => void;
+  setRolePermissions: (role: string, modules: NavigationTab[]) => void;
+  toggleEmployeePermission: (employeeId: string, module: NavigationTab) => void;
+  setEmployeePermissions: (employeeId: string, modules: NavigationTab[]) => void;
+  resetRolePermissions: (role?: string) => void;
+  resetEmployeePermissions: (employeeId: string) => void;
+  hasTabPermission: (tab: NavigationTab, employeeIdOrRole?: string) => boolean;
+  getEffectivePermissions: (employeeIdOrRole?: string) => NavigationTab[];
 
   // Domain state filtered by activeBusinessId (or consolidated)
   filteredPartners: Partner[];
@@ -161,6 +220,36 @@ interface BusinessContextType {
   auditLogs: AuditLog[];
   addAuditLog: (action: string, entity: string, businessId?: string) => void;
 
+  // Engineering, Bidding & Employee Operations Hub
+  bids: Bid[];
+  addBid: (bid: Omit<Bid, 'id' | 'createdAt'>) => void;
+  updateBidStage: (bidId: string, stage: BidStage) => void;
+  deleteBid: (bidId: string) => void;
+
+  rfis: RFI[];
+  addRfi: (rfi: Omit<RFI, 'id' | 'createdAt' | 'responseCount'>) => void;
+  updateRfiStatus: (rfiId: string, status: RfiStatus) => void;
+
+  deliverables: Deliverable[];
+  addDeliverable: (deliverable: Omit<Deliverable, 'id'>) => void;
+  updateDeliverableStatus: (deliverableId: string, status: DeliverableStatus) => void;
+  updateDeliverableProgress: (deliverableId: string, progress: number) => void;
+
+  responses: ResponseRecord[];
+  addResponse: (response: Omit<ResponseRecord, 'id'>) => void;
+  updateResponseActionStatus: (responseId: string, status: 'PENDING_ACTION' | 'IN_PROGRESS' | 'RESOLVED') => void;
+
+  materialCosts: MaterialCostItem[];
+  addMaterialCost: (item: Omit<MaterialCostItem, 'id' | 'lastUpdated'>) => void;
+  laborCosts: LaborCostItem[];
+  addLaborCost: (item: Omit<LaborCostItem, 'id' | 'lastUpdated'>) => void;
+
+  attendanceRecords: AttendanceRecord[];
+  isClockedIn: boolean;
+  clockInTime: string | null;
+  clockIn: (mode?: 'ON_SITE' | 'OFFICE' | 'REMOTE' | 'FIELD') => void;
+  clockOut: () => void;
+
   // AI Modal
   isAiAdvisorOpen: boolean;
   setIsAiAdvisorOpen: (open: boolean) => void;
@@ -220,6 +309,25 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>(() => getStored('auditLogs', initialAuditLogs));
   const [isAiAdvisorOpen, setIsAiAdvisorOpen] = useState<boolean>(false);
 
+  // Engineering, Bidding & Attendance State
+  const [bids, setBids] = useState<Bid[]>(() => getStored('bids', initialBids));
+  const [rfis, setRfis] = useState<RFI[]>(() => getStored('rfis', initialRfis));
+  const [deliverables, setDeliverables] = useState<Deliverable[]>(() => getStored('deliverables', initialDeliverables));
+  const [responses, setResponses] = useState<ResponseRecord[]>(() => getStored('responses', initialResponses));
+  const [materialCosts, setMaterialCosts] = useState<MaterialCostItem[]>(() => getStored('materialCosts', initialMaterialCosts));
+  const [laborCosts, setLaborCosts] = useState<LaborCostItem[]>(() => getStored('laborCosts', initialLaborCosts));
+  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>(() => getStored('attendanceRecords', initialAttendanceRecords));
+  const [isClockedIn, setIsClockedIn] = useState<boolean>(() => getStored('isClockedIn', true));
+  const [clockInTime, setClockInTime] = useState<string | null>(() => getStored('clockInTime', '08:00 AM'));
+
+  // Permissions Manager State
+  const [rolePermissions, setRolePermissionsState] = useState<Record<string, NavigationTab[]>>(() =>
+    getStored('rolePermissions', DEFAULT_ROLE_PERMISSIONS)
+  );
+  const [employeePermissions, setEmployeePermissionsState] = useState<Record<string, NavigationTab[]>>(() =>
+    getStored('employeePermissions', {})
+  );
+
   // Sync to storage
   useEffect(() => setStored('businesses', businesses), [businesses]);
   useEffect(() => setStored('activeBizId', activeBusinessId), [activeBusinessId]);
@@ -246,6 +354,17 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   useEffect(() => setStored('messages', messages), [messages]);
   useEffect(() => setStored('notifications', notifications), [notifications]);
   useEffect(() => setStored('auditLogs', auditLogs), [auditLogs]);
+  useEffect(() => setStored('rolePermissions', rolePermissions), [rolePermissions]);
+  useEffect(() => setStored('employeePermissions', employeePermissions), [employeePermissions]);
+  useEffect(() => setStored('bids', bids), [bids]);
+  useEffect(() => setStored('rfis', rfis), [rfis]);
+  useEffect(() => setStored('deliverables', deliverables), [deliverables]);
+  useEffect(() => setStored('responses', responses), [responses]);
+  useEffect(() => setStored('materialCosts', materialCosts), [materialCosts]);
+  useEffect(() => setStored('laborCosts', laborCosts), [laborCosts]);
+  useEffect(() => setStored('attendanceRecords', attendanceRecords), [attendanceRecords]);
+  useEffect(() => setStored('isClockedIn', isClockedIn), [isClockedIn]);
+  useEffect(() => setStored('clockInTime', clockInTime), [clockInTime]);
 
   const activeBusiness = useMemo(() => {
     if (activeBusinessId === 'CONSOLIDATED') return null;
@@ -283,9 +402,15 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const isEmployee = currentUser.globalRole === 'EMPLOYEE';
+  const isClient = currentUser.globalRole === 'CLIENT';
+  const isHr =
+    currentUser.globalRole === 'HR_MANAGER' ||
+    (currentUser.globalRole === 'EMPLOYEE' && currentUser.department === 'HR');
+  const isFinance = currentUser.globalRole === 'FINANCE_LEAD';
+  const isExecutive = currentUser.globalRole === 'SUPER_OWNER' || currentUser.globalRole === 'EXECUTIVE';
 
   const currentEmployee = useMemo(() => {
-    if (!isEmployee) return null;
+    if (!isEmployee && !isHr) return null;
     if (currentUser.employeeId) {
       const found = employees.find((e) => e.id === currentUser.employeeId);
       if (found) return found;
@@ -297,7 +422,163 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     );
     if (byName) return byName;
     return null;
-  }, [isEmployee, currentUser, employees]);
+  }, [isEmployee, isHr, currentUser, employees]);
+
+  const currentClient = useMemo(() => {
+    if (!isClient) return null;
+    if (currentUser.clientId) {
+      const found = clients.find((c) => c.id === currentUser.clientId);
+      if (found) return found;
+    }
+    const byEmail = clients.find((c) => c.email.toLowerCase() === currentUser.email.toLowerCase());
+    if (byEmail) return byEmail;
+    return clients[0] || null;
+  }, [isClient, currentUser, clients]);
+
+  const portalType = useMemo((): 'EXECUTIVE' | 'EMPLOYEE' | 'CLIENT' | 'HR' | 'FINANCE' => {
+    if (isClient) return 'CLIENT';
+    if (isHr) return 'HR';
+    if (isEmployee) return 'EMPLOYEE';
+    if (isFinance) return 'FINANCE';
+    return 'EXECUTIVE';
+  }, [isClient, isHr, isEmployee, isFinance]);
+
+  // Permissions Manager Methods
+  const getEffectivePermissions = (employeeIdOrRole?: string): NavigationTab[] => {
+    if (isClient) {
+      return ['overview', 'projects', 'billing', 'deliverables', 'rfis', 'messages'];
+    }
+    if (isHr) {
+      return ['overview', 'hr-payroll', 'attendance', 'clients', 'documents', 'messages'];
+    }
+    if (!employeeIdOrRole) {
+      if (!isEmployee) {
+        return [
+          'overview',
+          'personal-wealth',
+          'partners',
+          'crm',
+          'clients',
+          'billing',
+          'projects',
+          'hr-payroll',
+          'finance',
+          'inventory',
+          'reports',
+          'documents',
+          'messages',
+          'audit-logs',
+          'settings',
+          'bid-board',
+          'rfis',
+          'deliverables',
+          'responses',
+          'pricing-hub',
+          'attendance'
+        ];
+      }
+      const empId = currentUser.employeeId || currentUser.id;
+      if (employeePermissions[empId]) {
+        return employeePermissions[empId];
+      }
+      const dept = currentEmployee?.department || currentUser.department || 'GENERAL';
+      return rolePermissions[dept] || DEFAULT_ROLE_PERMISSIONS[dept] || DEFAULT_ROLE_PERMISSIONS['GENERAL'];
+    }
+
+    if (employeePermissions[employeeIdOrRole]) {
+      return employeePermissions[employeeIdOrRole];
+    }
+    if (rolePermissions[employeeIdOrRole]) {
+      return rolePermissions[employeeIdOrRole];
+    }
+    const emp = employees.find((e) => e.id === employeeIdOrRole || e.email === employeeIdOrRole);
+    if (emp) {
+      if (employeePermissions[emp.id]) {
+        return employeePermissions[emp.id];
+      }
+      const dept = emp.department || 'GENERAL';
+      return rolePermissions[dept] || DEFAULT_ROLE_PERMISSIONS[dept] || DEFAULT_ROLE_PERMISSIONS['GENERAL'];
+    }
+    return DEFAULT_ROLE_PERMISSIONS[employeeIdOrRole] || DEFAULT_ROLE_PERMISSIONS['GENERAL'];
+  };
+
+  const hasTabPermission = (tab: NavigationTab, employeeIdOrRole?: string): boolean => {
+    if (isClient) {
+      return ['overview', 'projects', 'billing', 'deliverables', 'rfis', 'messages'].includes(tab);
+    }
+    if (isHr) {
+      return ['overview', 'hr-payroll', 'attendance', 'clients', 'documents', 'messages'].includes(tab);
+    }
+    if (!employeeIdOrRole && !isEmployee) return true;
+    const allowed = getEffectivePermissions(employeeIdOrRole);
+    return allowed.includes(tab);
+  };
+
+  const toggleRolePermission = (role: string, module: NavigationTab) => {
+    setRolePermissionsState((prev) => {
+      const currentList = prev[role] || DEFAULT_ROLE_PERMISSIONS[role] || DEFAULT_ROLE_PERMISSIONS['GENERAL'];
+      const exists = currentList.includes(module);
+      const updated = exists ? currentList.filter((m) => m !== module) : [...currentList, module];
+      addAuditLog(`Permissions Manager: Toggled module '${module}' for role '${role}' to ${!exists ? 'ENABLED' : 'DISABLED'}`, 'Security & RBAC');
+      return {
+        ...prev,
+        [role]: updated
+      };
+    });
+  };
+
+  const setRolePermissions = (role: string, modules: NavigationTab[]) => {
+    setRolePermissionsState((prev) => ({
+      ...prev,
+      [role]: modules
+    }));
+    addAuditLog(`Permissions Manager: Set module permissions for role '${role}'`, 'Security & RBAC');
+  };
+
+  const toggleEmployeePermission = (employeeId: string, module: NavigationTab) => {
+    setEmployeePermissionsState((prev) => {
+      const currentList = prev[employeeId] || getEffectivePermissions(employeeId);
+      const exists = currentList.includes(module);
+      const updated = exists ? currentList.filter((m) => m !== module) : [...currentList, module];
+      const emp = employees.find((e) => e.id === employeeId);
+      const empName = emp ? `${emp.firstName} ${emp.lastName}` : employeeId;
+      addAuditLog(`Permissions Manager: Toggled module '${module}' for employee '${empName}' to ${!exists ? 'ENABLED' : 'DISABLED'}`, 'Security & RBAC');
+      return {
+        ...prev,
+        [employeeId]: updated
+      };
+    });
+  };
+
+  const setEmployeePermissions = (employeeId: string, modules: NavigationTab[]) => {
+    setEmployeePermissionsState((prev) => ({
+      ...prev,
+      [employeeId]: modules
+    }));
+    addAuditLog(`Permissions Manager: Set custom module permissions for employee '${employeeId}'`, 'Security & RBAC');
+  };
+
+  const resetRolePermissions = (role?: string) => {
+    if (role) {
+      setRolePermissionsState((prev) => ({
+        ...prev,
+        [role]: DEFAULT_ROLE_PERMISSIONS[role] || DEFAULT_ROLE_PERMISSIONS['GENERAL']
+      }));
+      addAuditLog(`Permissions Manager: Reset permissions for role '${role}' to defaults`, 'Security & RBAC');
+    } else {
+      setRolePermissionsState(DEFAULT_ROLE_PERMISSIONS);
+      addAuditLog('Permissions Manager: Reset all role permissions to factory defaults', 'Security & RBAC');
+    }
+  };
+
+  const resetEmployeePermissions = (employeeId: string) => {
+    setEmployeePermissionsState((prev) => {
+      const next = { ...prev };
+      delete next[employeeId];
+      return next;
+    });
+    addAuditLog(`Permissions Manager: Cleared custom overrides for employee '${employeeId}'`, 'Security & RBAC');
+  };
 
   const switchBusiness = (id: string | 'CONSOLIDATED') => {
     setActiveBusinessId(id);
@@ -309,7 +590,12 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const user = userProfiles.find((u) => u.id === id);
     if (user) {
       setCurrentUser(user);
-      if (user.globalRole === 'EMPLOYEE') {
+      if (user.globalRole === 'CLIENT') {
+        if (user.businessId) {
+          setActiveBusinessId(user.businessId);
+        }
+        setActiveTab('overview');
+      } else if (user.globalRole === 'EMPLOYEE') {
         if (user.businessId) {
           setActiveBusinessId(user.businessId);
         } else {
@@ -317,6 +603,11 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           if (emp) setActiveBusinessId(emp.businessId);
         }
         // Redirect to overview (which hosts the employee portal dashboard)
+        setActiveTab('overview');
+      } else if (user.globalRole === 'HR_MANAGER') {
+        if (user.businessId) {
+          setActiveBusinessId(user.businessId);
+        }
         setActiveTab('overview');
       }
       addAuditLog(`Switched user profile to ${user.name} (${user.title})`, 'Authentication');
@@ -663,6 +954,11 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     addAuditLog(`Approved leave request #${requestId}`, 'HR & Payroll');
   };
 
+  const rejectLeaveRequest = (requestId: string) => {
+    setLeaveRequests((prev) => prev.map((r) => (r.id === requestId ? { ...r, status: 'REJECTED' } : r)));
+    addAuditLog(`Rejected leave request #${requestId}`, 'HR & Payroll');
+  };
+
   const addExpense = (expData: Omit<Expense, 'id'>) => {
     const newExp: Expense = {
       ...expData,
@@ -825,6 +1121,167 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setNotifications((prev) => prev.filter((n) => n.id !== id));
   };
 
+  // Engineering & Bid Board Mutations
+  const addBid = (bid: Omit<Bid, 'id' | 'createdAt'>) => {
+    const newBid: Bid = {
+      ...bid,
+      id: `bid_${Date.now()}`,
+      createdAt: new Date().toISOString().split('T')[0]
+    };
+    setBids((prev) => [newBid, ...prev]);
+    addAuditLog(`Created new tender proposal: ${newBid.code} - ${newBid.title}`, 'Bid Board');
+  };
+
+  const updateBidStage = (bidId: string, stage: BidStage) => {
+    setBids((prev) => prev.map((b) => (b.id === bidId ? { ...b, stage } : b)));
+    addAuditLog(`Updated tender bid #${bidId} stage to ${stage}`, 'Bid Board');
+  };
+
+  const deleteBid = (bidId: string) => {
+    setBids((prev) => prev.filter((b) => b.id !== bidId));
+    addAuditLog(`Removed tender bid #${bidId}`, 'Bid Board');
+  };
+
+  // RFI Mutations
+  const addRfi = (rfi: Omit<RFI, 'id' | 'createdAt' | 'responseCount'>) => {
+    const newRfi: RFI = {
+      ...rfi,
+      id: `rfi_${Date.now()}`,
+      createdAt: new Date().toISOString().split('T')[0],
+      responseCount: 0
+    };
+    setRfis((prev) => [newRfi, ...prev]);
+    addAuditLog(`Submitted technical RFI: ${newRfi.number} - ${newRfi.subject}`, 'RFIs');
+  };
+
+  const updateRfiStatus = (rfiId: string, status: RfiStatus) => {
+    setRfis((prev) => prev.map((r) => (r.id === rfiId ? { ...r, status } : r)));
+    addAuditLog(`Updated RFI #${rfiId} status to ${status}`, 'RFIs');
+  };
+
+  // Deliverables Mutations
+  const addDeliverable = (deliverable: Omit<Deliverable, 'id'>) => {
+    const newDel: Deliverable = {
+      ...deliverable,
+      id: `del_${Date.now()}`
+    };
+    setDeliverables((prev) => [newDel, ...prev]);
+    addAuditLog(`Added project deliverable: ${newDel.code} (${newDel.title})`, 'Deliverables');
+  };
+
+  const updateDeliverableStatus = (deliverableId: string, status: DeliverableStatus) => {
+    setDeliverables((prev) =>
+      prev.map((d) =>
+        d.id === deliverableId
+          ? {
+              ...d,
+              status,
+              completionPercentage: status === 'APPROVED' ? 100 : d.completionPercentage
+            }
+          : d
+      )
+    );
+    addAuditLog(`Updated deliverable #${deliverableId} status to ${status}`, 'Deliverables');
+  };
+
+  const updateDeliverableProgress = (deliverableId: string, progress: number) => {
+    setDeliverables((prev) =>
+      prev.map((d) => (d.id === deliverableId ? { ...d, completionPercentage: progress } : d))
+    );
+  };
+
+  // Responses Mutations
+  const addResponse = (resp: Omit<ResponseRecord, 'id'>) => {
+    const newResp: ResponseRecord = {
+      ...resp,
+      id: `resp_${Date.now()}`
+    };
+    setResponses((prev) => [newResp, ...prev]);
+    if (newResp.referenceCode) {
+      setRfis((prev) =>
+        prev.map((r) =>
+          r.number === newResp.referenceCode
+            ? { ...r, responseCount: (r.responseCount || 0) + 1 }
+            : r
+        )
+      );
+    }
+    addAuditLog(`Logged consultant/client response for ${newResp.referenceCode}`, 'Responses');
+  };
+
+  const updateResponseActionStatus = (
+    responseId: string,
+    status: 'PENDING_ACTION' | 'IN_PROGRESS' | 'RESOLVED'
+  ) => {
+    setResponses((prev) =>
+      prev.map((r) => (r.id === responseId ? { ...r, actionStatus: status } : r))
+    );
+    addAuditLog(`Updated response action item #${responseId} status to ${status}`, 'Responses');
+  };
+
+  // Pricing Hub Mutations
+  const addMaterialCost = (item: Omit<MaterialCostItem, 'id' | 'lastUpdated'>) => {
+    const newMat: MaterialCostItem = {
+      ...item,
+      id: `mat_${Date.now()}`,
+      lastUpdated: new Date().toISOString().split('T')[0]
+    };
+    setMaterialCosts((prev) => [newMat, ...prev]);
+    addAuditLog(`Added material catalog rate: ${newMat.name} (${newMat.code})`, 'Pricing Hub');
+  };
+
+  const addLaborCost = (item: Omit<LaborCostItem, 'id' | 'lastUpdated'>) => {
+    const newLab: LaborCostItem = {
+      ...item,
+      id: `lab_${Date.now()}`,
+      lastUpdated: new Date().toISOString().split('T')[0]
+    };
+    setLaborCosts((prev) => [newLab, ...prev]);
+    addAuditLog(`Added labor trade rate: ${newLab.trade}`, 'Pricing Hub');
+  };
+
+  // Attendance & Time-Clock Mutations
+  const clockIn = (mode: 'ON_SITE' | 'OFFICE' | 'REMOTE' | 'FIELD' = 'OFFICE') => {
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const dateStr = now.toISOString().split('T')[0];
+    setIsClockedIn(true);
+    setClockInTime(timeStr);
+
+    const newRecord: AttendanceRecord = {
+      id: `att_${Date.now()}`,
+      employeeId: currentUser.employeeId || 'emp_current',
+      employeeName: currentUser.name,
+      date: dateStr,
+      clockIn: timeStr,
+      mode,
+      locationMode: mode,
+      status: 'PRESENT'
+    };
+    setAttendanceRecords((prev) => [newRecord, ...prev]);
+    addAuditLog(`Clocked IN at ${timeStr} (${mode})`, 'Attendance');
+  };
+
+  const clockOut = () => {
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    setIsClockedIn(false);
+
+    setAttendanceRecords((prev) =>
+      prev.map((r, idx) => {
+        if (idx === 0 && !r.clockOut) {
+          return {
+            ...r,
+            clockOut: timeStr,
+            totalHours: 8.5
+          };
+        }
+        return r;
+      })
+    );
+    addAuditLog(`Clocked OUT at ${timeStr}`, 'Attendance');
+  };
+
   return (
     <BusinessContext.Provider
       value={{
@@ -834,7 +1291,13 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         userProfiles,
         currentUser,
         isEmployee,
+        isClient,
+        isHr,
+        isFinance,
+        isExecutive,
         currentEmployee,
+        currentClient,
+        portalType,
         activeTab,
         setActiveTab,
         switchBusiness,
@@ -879,6 +1342,7 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         triggerPayrollRun,
         submitLeaveRequest,
         approveLeaveRequest,
+        rejectLeaveRequest,
         addExpense,
         approveExpense,
         addPurchaseOrder,
@@ -904,6 +1368,48 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         dismissNotification,
         auditLogs,
         addAuditLog,
+
+        // Permissions Manager
+        rolePermissions,
+        employeePermissions,
+        toggleRolePermission,
+        setRolePermissions,
+        toggleEmployeePermission,
+        setEmployeePermissions,
+        resetRolePermissions,
+        resetEmployeePermissions,
+        hasTabPermission,
+        getEffectivePermissions,
+
+        // Engineering, Bidding & Employee Operations Hub
+        bids,
+        addBid,
+        updateBidStage,
+        deleteBid,
+
+        rfis,
+        addRfi,
+        updateRfiStatus,
+
+        deliverables,
+        addDeliverable,
+        updateDeliverableStatus,
+        updateDeliverableProgress,
+
+        responses,
+        addResponse,
+        updateResponseActionStatus,
+
+        materialCosts,
+        addMaterialCost,
+        laborCosts,
+        addLaborCost,
+
+        attendanceRecords,
+        isClockedIn,
+        clockInTime,
+        clockIn,
+        clockOut,
 
         isAiAdvisorOpen,
         setIsAiAdvisorOpen

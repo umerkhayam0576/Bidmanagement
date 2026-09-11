@@ -217,7 +217,7 @@ export const RegisterEmployeeModal: React.FC<RegisterEmployeeModalProps> = ({
                 >
                   {departments.map((dept) => (
                     <option key={dept} value={dept}>
-                      {dept.replace('_', ' ')}
+                      {(dept || '').replace('_', ' ')}
                     </option>
                   ))}
                 </select>

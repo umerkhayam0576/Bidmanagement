@@ -41,8 +41,9 @@ export interface UserProfile {
   email: string;
   avatar: string;
   title: string;
-  globalRole: 'SUPER_OWNER' | 'EXECUTIVE' | 'FINANCE_LEAD' | 'AUDITOR' | 'EMPLOYEE';
+  globalRole: 'SUPER_OWNER' | 'EXECUTIVE' | 'FINANCE_LEAD' | 'AUDITOR' | 'EMPLOYEE' | 'HR_MANAGER' | 'CLIENT';
   employeeId?: string;
+  clientId?: string;
   businessId?: string;
   department?: string;
 }
@@ -378,6 +379,205 @@ export interface AuditLog {
   entity: string;
   timestamp: string;
   ipAddress: string;
+}
+
+export type NavigationTab =
+  | 'overview'
+  | 'bid-board'
+  | 'rfis'
+  | 'deliverables'
+  | 'responses'
+  | 'pricing-hub'
+  | 'attendance'
+  | 'personal-wealth'
+  | 'partners'
+  | 'crm'
+  | 'clients'
+  | 'billing'
+  | 'projects'
+  | 'hr-payroll'
+  | 'finance'
+  | 'inventory'
+  | 'reports'
+  | 'documents'
+  | 'messages'
+  | 'audit-logs'
+  | 'settings';
+
+// Bid Board Types
+export type BidStage =
+  | 'LEAD'
+  | 'SCOPING'
+  | 'ESTIMATING'
+  | 'REVIEW'
+  | 'SUBMITTED'
+  | 'SHORTLISTED'
+  | 'AWARDED'
+  | 'WON'
+  | 'LOST';
+
+export interface Bid {
+  id: string;
+  code: string;
+  title: string;
+  client: string;
+  estimatedValue: number;
+  currency: CurrencyCode;
+  stage: BidStage;
+  dueDate: string;
+  probability: number;
+  leadEstimator: string;
+  projectScope: string;
+  bondRequired?: string;
+  submissionFormat?: string;
+  notes?: string;
+  createdAt: string;
+}
+
+// RFI (Requests for Information) Types
+export type RfiDiscipline = 'STRUCTURAL' | 'MEP' | 'CIVIL' | 'ARCHITECTURAL' | 'COMMERCIAL' | 'GENERAL';
+export type RfiStatus = 'DRAFT' | 'OPEN' | 'SUBMITTED' | 'UNDER_REVIEW' | 'RESPONDED' | 'RESOLVED' | 'CLOSED';
+
+export interface RFI {
+  id: string;
+  number: string;
+  project: string;
+  subject: string;
+  discipline: RfiDiscipline;
+  question: string;
+  proposedSolution?: string;
+  costImpact: boolean;
+  scheduleImpactDays: number;
+  submittedBy: string;
+  assignedTo: string;
+  dueDate: string;
+  status: RfiStatus;
+  createdAt: string;
+  responseCount?: number;
+}
+
+// Deliverables & Submittals Types
+export type DeliverableCategory =
+  | 'SHOP_DRAWINGS'
+  | 'CALCULATION_REPORT'
+  | 'METHOD_STATEMENT'
+  | 'MATERIAL_SUBMITTAL'
+  | 'AS_BUILT'
+  | 'SAFETY_PLAN';
+
+export type DeliverableType =
+  | 'SHOP_DRAWING'
+  | 'CALCULATION_REPORT'
+  | 'METHOD_STATEMENT'
+  | 'AS_BUILT'
+  | 'MATERIAL_SUBMITTAL'
+  | 'INSPECTION_TEST_PLAN';
+
+export type DeliverableStatus =
+  | 'NOT_STARTED'
+  | 'IN_PROGRESS'
+  | 'REVIEW'
+  | 'INTERNAL_REVIEW'
+  | 'SUBMITTED'
+  | 'APPROVED'
+  | 'REJECTED'
+  | 'REVISE_RESUBMIT';
+
+export interface Deliverable {
+  id: string;
+  code: string;
+  title: string;
+  project: string;
+  category: DeliverableCategory;
+  assignedTo: string;
+  revision: string;
+  dueDate: string;
+  status: DeliverableStatus;
+  completionPercentage: number;
+  specSection?: string;
+  notes?: string;
+}
+
+// Client & Consultant Responses Types
+export type ResponseDetermination =
+  | 'APPROVED'
+  | 'APPROVED_AS_NOTED'
+  | 'CLARIFICATION_PROVIDED'
+  | 'REVISE_AND_RESUBMIT'
+  | 'REJECTED';
+
+export interface ResponseRecord {
+  id: string;
+  referenceCode: string;
+  itemType: 'RFI' | 'DELIVERABLE' | 'CLIENT_QUERY';
+  subject: string;
+  project: string;
+  respondent: string;
+  respondentRole: string;
+  dateReceived: string;
+  determination: ResponseDetermination;
+  comments: string;
+  actionRequired: string;
+  actionStatus: 'PENDING_ACTION' | 'IN_PROGRESS' | 'RESOLVED';
+}
+
+// Pricing Hub: Material Cost Database
+export interface MaterialCostItem {
+  id: string;
+  code: string;
+  name: string;
+  category: string;
+  unit: string;
+  unitCost: number;
+  currency: CurrencyCode;
+  preferredSupplier: string;
+  leadTime: string;
+  minOrderQty: number;
+  lastUpdated: string;
+  notes?: string;
+}
+
+// Pricing Hub: Labor Cost Database
+export interface LaborCostItem {
+  id: string;
+  trade: string;
+  category: 'Engineering & Modeling' | 'Skilled Trade' | 'Supervision & Safety' | 'General Craft';
+  hourlyRate: number;
+  overtimeRate: number;
+  dailyRate: number;
+  burdenMultiplier: number;
+  currency: CurrencyCode;
+  lastUpdated: string;
+  standardCrewSize?: number;
+}
+
+// Leaves & Attendance Types
+export interface AttendanceRecord {
+  id: string;
+  employeeId: string;
+  employeeName?: string;
+  date: string;
+  clockIn: string;
+  clockOut?: string;
+  totalHours?: number;
+  mode: 'ON_SITE' | 'OFFICE' | 'REMOTE' | 'FIELD';
+  locationMode?: 'ON_SITE' | 'OFFICE' | 'REMOTE' | 'FIELD';
+  status: 'PRESENT' | 'LATE' | 'OVERTIME' | 'HALF_DAY';
+}
+
+export interface RolePermissionConfig {
+  id: string;
+  name: string;
+  department: Department;
+  description: string;
+  defaultModules: NavigationTab[];
+}
+
+export interface ModulePermissionInfo {
+  id: NavigationTab;
+  name: string;
+  category: 'Commercial' | 'Workplace' | 'Finance & HR' | 'Operations' | 'Governance';
+  description: string;
 }
 
 // Zod validation schemas for API & form hygiene

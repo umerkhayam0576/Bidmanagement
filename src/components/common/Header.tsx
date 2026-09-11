@@ -12,10 +12,14 @@ import {
   Globe2,
   DollarSign,
   UserPlus,
-  ShieldCheck
+  ShieldCheck,
+  Users2,
+  Lock,
+  ArrowRightLeft
 } from 'lucide-react';
 import { useBusiness } from '../../context/BusinessContext';
 import { RegisterEmployeeModal } from './RegisterEmployeeModal';
+import { PortalLoginModal } from './PortalLoginModal';
 
 export const Header: React.FC<{
   onOpenQuickAdd: () => void;
@@ -29,6 +33,11 @@ export const Header: React.FC<{
     userProfiles,
     switchUser,
     isEmployee,
+    isClient,
+    isHr,
+    isFinance,
+    isExecutive,
+    portalType,
     notifications,
     markNotificationRead,
     formatCurrency,
@@ -40,11 +49,41 @@ export const Header: React.FC<{
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [notifDropdownOpen, setNotifDropdownOpen] = useState(false);
   const [registerEmpModalOpen, setRegisterEmpModalOpen] = useState(false);
+  const [portalModalOpen, setPortalModalOpen] = useState(false);
 
   const unreadNotifs = notifications.filter((n) => !n.read);
 
-  const executiveProfiles = userProfiles.filter((u) => u.globalRole !== 'EMPLOYEE');
+  const executiveProfiles = userProfiles.filter(
+    (u) => u.globalRole === 'SUPER_OWNER' || u.globalRole === 'EXECUTIVE' || u.globalRole === 'FINANCE_LEAD'
+  );
+  const hrProfiles = userProfiles.filter((u) => u.globalRole === 'HR_MANAGER' || u.department === 'HR');
   const employeeProfiles = userProfiles.filter((u) => u.globalRole === 'EMPLOYEE');
+  const clientProfiles = userProfiles.filter((u) => u.globalRole === 'CLIENT');
+
+  // Dynamic portal badge info
+  const portalBadge = isClient
+    ? {
+        label: 'CLIENT PORTAL',
+        badgeClass: 'bg-blue-500/20 text-blue-300 border border-blue-500/30',
+        subtitle: 'Client Scope & Billing Workspace'
+      }
+    : isHr
+    ? {
+        label: 'HR & PEOPLE PORTAL',
+        badgeClass: 'bg-purple-500/20 text-purple-300 border border-purple-500/30',
+        subtitle: 'Workforce & Attendance Operations'
+      }
+    : isEmployee
+    ? {
+        label: 'EMPLOYEE PORTAL',
+        badgeClass: 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30',
+        subtitle: 'Employee Self-Service Workspace'
+      }
+    : {
+        label: 'ENTERPRISE COMMAND',
+        badgeClass: 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30',
+        subtitle: 'Full Executive Oversight'
+      };
 
   return (
     <header className="h-16 bg-slate-900 border-b border-slate-800 text-white flex items-center justify-between px-4 lg:px-6 sticky top-0 z-30 shadow-sm">
@@ -61,17 +100,13 @@ export const Header: React.FC<{
             <div className="flex items-center gap-2">
               <span className="font-extrabold tracking-wider text-lg text-white font-mono">REFAY</span>
               <span
-                className={`text-[10px] uppercase font-bold tracking-widest px-1.5 py-0.5 rounded ${
-                  isEmployee
-                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                    : 'bg-emerald-500/20 text-emerald-400'
-                }`}
+                className={`text-[10px] uppercase font-bold tracking-widest px-1.5 py-0.5 rounded ${portalBadge.badgeClass}`}
               >
-                {isEmployee ? 'EMPLOYEE PORTAL' : 'ENTERPRISE'}
+                {portalBadge.label}
               </span>
             </div>
             <p className="text-[11px] text-slate-400 font-medium hidden sm:block">
-              {isEmployee ? 'Employee Self-Service Workspace' : 'Manage Everything You Own'}
+              {portalBadge.subtitle}
             </p>
           </div>
         </div>
@@ -207,6 +242,17 @@ export const Header: React.FC<{
         >
           <Plus className="w-3.5 h-3.5 text-emerald-400" />
           <span>{isEmployee ? 'Quick Action' : 'Quick Record'}</span>
+        </button>
+
+        {/* Portals Switcher Button */}
+        <button
+          id="header-portals-switcher-btn"
+          onClick={() => setPortalModalOpen(true)}
+          className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-750 border border-slate-700 hover:border-slate-600 text-slate-200 text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-all shadow-sm"
+          title="Switch Portal (Employee, Client, HR, Executive)"
+        >
+          <ArrowRightLeft className="w-3.5 h-3.5 text-blue-400" />
+          <span className="hidden sm:inline">Portals</span>
         </button>
 
         {/* AI Advisor / HR Helpdesk Button */}
@@ -356,7 +402,48 @@ export const Header: React.FC<{
 
               <div className="my-2 border-t border-slate-800" />
 
-              {/* Section 2: Employees & Staff */}
+              {/* Section 2: HR & People Operations */}
+              <div className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                <Users2 className="w-3 h-3 text-purple-400" />
+                HR & People Management
+              </div>
+              {hrProfiles.map((user) => {
+                const isSelected = user.id === currentUser.id;
+                return (
+                  <button
+                    key={user.id}
+                    onClick={() => {
+                      switchUser(user.id);
+                      setUserDropdownOpen(false);
+                    }}
+                    className={`w-full px-3 py-2 text-left flex items-center justify-between hover:bg-slate-800 transition-colors ${
+                      isSelected ? 'bg-slate-800/60' : ''
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <img
+                        src={user.avatar}
+                        alt={user.name}
+                        className="w-7 h-7 rounded-full object-cover"
+                      />
+                      <div>
+                        <div className="text-xs font-semibold text-slate-200 flex items-center gap-1.5">
+                          {user.name}
+                          <span className="text-[9px] px-1 py-0.2 rounded bg-purple-500/10 text-purple-300">
+                            HR Portal
+                          </span>
+                        </div>
+                        <div className="text-[10px] text-slate-400">{user.title}</div>
+                      </div>
+                    </div>
+                    {isSelected && <Check className="w-4 h-4 text-purple-400" />}
+                  </button>
+                );
+              })}
+
+              <div className="my-2 border-t border-slate-800" />
+
+              {/* Section 3: Employees & Staff */}
               <div className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                 <UserCheck className="w-3 h-3 text-emerald-400" />
                 Employees & Staff ({employeeProfiles.length})
@@ -401,6 +488,59 @@ export const Header: React.FC<{
 
               <div className="my-2 border-t border-slate-800" />
 
+              {/* Section 4: Client Portals */}
+              <div className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                <Building2 className="w-3 h-3 text-blue-400" />
+                Client Portals ({clientProfiles.length})
+              </div>
+              {clientProfiles.map((user) => {
+                const isSelected = user.id === currentUser.id;
+                return (
+                  <button
+                    key={user.id}
+                    onClick={() => {
+                      switchUser(user.id);
+                      setUserDropdownOpen(false);
+                    }}
+                    className={`w-full px-3 py-2 text-left flex items-center justify-between hover:bg-slate-800 transition-colors ${
+                      isSelected ? 'bg-slate-800/60' : ''
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <img
+                        src={user.avatar}
+                        alt={user.name}
+                        className="w-7 h-7 rounded-full object-cover"
+                      />
+                      <div>
+                        <div className="text-xs font-semibold text-slate-200 flex items-center gap-1.5">
+                          {user.name}
+                          <span className="text-[9px] px-1 py-0.2 rounded bg-blue-500/10 text-blue-300">
+                            Client Portal
+                          </span>
+                        </div>
+                        <div className="text-[10px] text-slate-400">{user.title}</div>
+                      </div>
+                    </div>
+                    {isSelected && <Check className="w-4 h-4 text-blue-400" />}
+                  </button>
+                );
+              })}
+
+              <div className="my-2 border-t border-slate-800" />
+
+              {/* Launch Full Portal Switcher */}
+              <button
+                onClick={() => {
+                  setUserDropdownOpen(false);
+                  setPortalModalOpen(true);
+                }}
+                className="w-full px-3 py-2 text-left text-xs font-semibold text-blue-400 hover:bg-slate-800 flex items-center gap-2 transition-colors"
+              >
+                <ArrowRightLeft className="w-4 h-4 text-blue-400" />
+                <span>Open Full Portals Switcher</span>
+              </button>
+
               {/* Button to register as employee */}
               <button
                 id="header-register-employee-btn"
@@ -422,6 +562,12 @@ export const Header: React.FC<{
       <RegisterEmployeeModal
         isOpen={registerEmpModalOpen}
         onClose={() => setRegisterEmpModalOpen(false)}
+      />
+
+      {/* Portals Selector Modal */}
+      <PortalLoginModal
+        isOpen={portalModalOpen}
+        onClose={() => setPortalModalOpen(false)}
       />
     </header>
   );

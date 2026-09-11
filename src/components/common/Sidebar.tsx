@@ -17,7 +17,13 @@ import {
   Settings,
   Sparkles,
   PieChart,
-  Landmark
+  Landmark,
+  Briefcase,
+  HelpCircle,
+  FileCheck,
+  Reply,
+  Coins,
+  CalendarClock
 } from 'lucide-react';
 import { useBusiness, NavigationTab } from '../../context/BusinessContext';
 
@@ -30,10 +36,16 @@ export const Sidebar: React.FC = () => {
     calculateNetWorth,
     formatCurrency,
     isEmployee,
+    isClient,
+    isHr,
+    isFinance,
+    isExecutive,
     currentUser,
     currentEmployee,
+    currentClient,
     userProfiles,
-    switchUser
+    switchUser,
+    hasTabPermission
   } = useBusiness();
 
   const netWorthData = calculateNetWorth();
@@ -60,14 +72,20 @@ export const Sidebar: React.FC = () => {
       label: 'Commercial Engine',
       items: [
         { id: 'crm', label: 'Sales & CRM', icon: TrendingUp },
+        { id: 'bid-board', label: 'Bids & Estimates', icon: Briefcase },
+        { id: 'pricing-hub', label: 'Pricing Hub (Rates)', icon: Coins },
         { id: 'clients', label: 'Clients Directory', icon: Building },
         { id: 'billing', label: 'Quotations & Invoices', icon: Receipt },
         { id: 'projects', label: 'Projects & Tasks', icon: FolderKanban }
       ]
     },
     {
-      label: 'Operations & Assets',
+      label: 'Engineering & Operations',
       items: [
+        { id: 'rfis', label: 'RFIs (Technical Queries)', icon: HelpCircle },
+        { id: 'deliverables', label: 'Deliverables & Submittals', icon: FileCheck },
+        { id: 'responses', label: 'Consultant Responses', icon: Reply },
+        { id: 'attendance', label: 'Leaves & Attendance', icon: CalendarClock },
         { id: 'hr-payroll', label: 'HR & Payroll', icon: UserCheck },
         { id: 'finance', label: 'Finance & Expenses', icon: Wallet },
         { id: 'inventory', label: 'Inventory & Stock', icon: Package }
@@ -85,7 +103,8 @@ export const Sidebar: React.FC = () => {
     }
   ];
 
-  const employeeNavGroups: {
+  // Full candidate employee navigation items governed dynamically by Permissions Manager
+  const employeeAllNavGroups: {
     label: string;
     items: {
       id: NavigationTab;
@@ -98,22 +117,125 @@ export const Sidebar: React.FC = () => {
       label: 'My Workspace',
       items: [
         { id: 'overview', label: 'My Dashboard', icon: LayoutDashboard, badge: 'Portal' },
-        { id: 'projects', label: 'My Tasks & Projects', icon: FolderKanban },
+        { id: 'attendance', label: 'Leaves & Attendance', icon: CalendarClock, badge: 'Shift' },
+        { id: 'projects', label: 'My Tasks & Projects', icon: FolderKanban }
+      ]
+    },
+    {
+      label: 'Bidding & Cost Database',
+      items: [
+        { id: 'bid-board', label: 'Bid Board (Tenders)', icon: Briefcase },
+        { id: 'pricing-hub', label: 'Pricing Hub (Rates)', icon: Coins }
+      ]
+    },
+    {
+      label: 'Engineering & Site Flow',
+      items: [
+        { id: 'rfis', label: 'Technical RFIs', icon: HelpCircle },
+        { id: 'deliverables', label: 'Deliverables / Drawings', icon: FileCheck },
+        { id: 'responses', label: 'Reviews & Responses', icon: Reply }
+      ]
+    },
+    {
+      label: 'Commercial & Sales',
+      items: [
+        { id: 'crm', label: 'Sales CRM & Deals', icon: TrendingUp },
+        { id: 'billing', label: 'Invoicing & Quotes', icon: Receipt }
+      ]
+    },
+    {
+      label: 'Compensation & HR',
+      items: [
         { id: 'hr-payroll', label: 'My Payslips & Leave', icon: UserCheck },
         { id: 'finance', label: 'Expense Claims', icon: Wallet }
       ]
     },
     {
+      label: 'Operations & Assets',
+      items: [
+        { id: 'inventory', label: 'Inventory & Stock', icon: Package },
+        { id: 'reports', label: 'Reports & Analytics', icon: FileBarChart2 }
+      ]
+    },
+    {
       label: 'Company & Team',
       items: [
-        { id: 'clients', label: 'Team Directory', icon: Building },
+        { id: 'clients', label: 'Team & Directory', icon: Building },
         { id: 'messages', label: 'Team Messages', icon: MessageSquare },
         { id: 'documents', label: 'Handbook & Policies', icon: FolderLock }
+      ]
+    },
+    {
+      label: 'Governance & Equity',
+      items: [
+        { id: 'audit-logs', label: 'Audit Trail', icon: History },
+        { id: 'partners', label: 'Partners & Equity', icon: PieChart },
+        { id: 'personal-wealth', label: 'Personal Wealth', icon: Landmark }
       ]
     }
   ];
 
-  const navGroups = isEmployee ? employeeNavGroups : executiveNavGroups;
+  // Client Navigation Groups
+  const clientNavGroups: {
+    label: string;
+    items: {
+      id: NavigationTab;
+      label: string;
+      icon: React.ComponentType<{ className?: string }>;
+      badge?: string;
+    }[];
+  }[] = [
+    {
+      label: 'Client Portal',
+      items: [
+        { id: 'overview', label: 'Client Dashboard', icon: LayoutDashboard, badge: 'Portal' },
+        { id: 'projects', label: 'Contracted Projects', icon: FolderKanban },
+        { id: 'billing', label: 'Invoices & Billing', icon: Receipt },
+        { id: 'deliverables', label: 'Submittals & Approvals', icon: FileCheck },
+        { id: 'rfis', label: 'Technical RFIs', icon: HelpCircle },
+        { id: 'messages', label: 'Project Messages', icon: MessageSquare }
+      ]
+    }
+  ];
+
+  // HR & People Navigation Groups
+  const hrNavGroups: {
+    label: string;
+    items: {
+      id: NavigationTab;
+      label: string;
+      icon: React.ComponentType<{ className?: string }>;
+      badge?: string;
+    }[];
+  }[] = [
+    {
+      label: 'People Operations',
+      items: [
+        { id: 'overview', label: 'HR Dashboard', icon: LayoutDashboard, badge: 'HR' },
+        { id: 'hr-payroll', label: 'Payroll & Leave Approvals', icon: UserCheck },
+        { id: 'attendance', label: 'Shift Attendance Rosters', icon: CalendarClock },
+        { id: 'clients', label: 'Staff Directory', icon: Users2 },
+        { id: 'documents', label: 'Policies & Contracts', icon: FolderLock },
+        { id: 'messages', label: 'Staff Communications', icon: MessageSquare }
+      ]
+    }
+  ];
+
+  // Dynamically filter employee nav groups based on permissions
+  const employeeNavGroups = employeeAllNavGroups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => hasTabPermission(item.id))
+    }))
+    .filter((group) => group.items.length > 0);
+
+  const navGroups = isClient
+    ? clientNavGroups
+    : isHr
+    ? hrNavGroups
+    : isEmployee
+    ? employeeNavGroups
+    : executiveNavGroups;
   const executiveProfile = userProfiles.find(
     (u) => u.globalRole === 'SUPER_OWNER' || u.globalRole === 'EXECUTIVE'
   );
@@ -137,7 +259,11 @@ export const Sidebar: React.FC = () => {
                     onClick={() => setActiveTab(item.id)}
                     className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-semibold transition-all group ${
                       isActive
-                        ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                        ? isClient
+                          ? 'bg-blue-500/15 text-blue-400 border border-blue-500/30'
+                          : isHr
+                          ? 'bg-purple-500/15 text-purple-400 border border-purple-500/30'
+                          : 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
                         : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
                     }`}
                   >
@@ -145,14 +271,26 @@ export const Sidebar: React.FC = () => {
                       <Icon
                         className={`w-4 h-4 transition-colors ${
                           isActive
-                            ? 'text-emerald-400'
+                            ? isClient
+                              ? 'text-blue-400'
+                              : isHr
+                              ? 'text-purple-400'
+                              : 'text-emerald-400'
                             : 'text-slate-400 group-hover:text-slate-200'
                         }`}
                       />
                       <span>{item.label}</span>
                     </div>
                     {item.badge && (
-                      <span className="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300">
+                      <span
+                        className={`text-[9px] uppercase font-bold px-1.5 py-0.5 rounded ${
+                          isClient
+                            ? 'bg-blue-500/20 text-blue-300'
+                            : isHr
+                            ? 'bg-purple-500/20 text-purple-300'
+                            : 'bg-emerald-500/20 text-emerald-300'
+                        }`}
+                      >
                         {item.badge}
                       </span>
                     )}
@@ -164,9 +302,69 @@ export const Sidebar: React.FC = () => {
         ))}
       </div>
 
-      {/* Bottom Ownership / Equity or Employee Portal Snapshot Card */}
+      {/* Bottom Ownership / Equity or Role-Specific Portal Snapshot Card */}
       <div className="p-3 border-t border-slate-800/80 bg-slate-950/40">
-        {isEmployee ? (
+        {isClient ? (
+          <div id="sidebar-client-card" className="bg-slate-850 p-3 rounded-xl border border-blue-500/30 space-y-2">
+            <div className="flex items-center justify-between text-[11px] text-slate-400">
+              <span className="font-semibold text-blue-400 uppercase tracking-wider text-[10px]">
+                Client Portal
+              </span>
+              <span className="text-[10px] font-mono text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded">
+                AUTHORIZED
+              </span>
+            </div>
+            <div>
+              <div className="text-xs font-semibold text-white truncate">
+                {currentUser.name}
+              </div>
+              <div className="text-[10px] text-slate-400 truncate">
+                {currentClient?.company || currentUser.title}
+              </div>
+            </div>
+            <div className="text-[10px] text-slate-400 pt-1 border-t border-slate-800 flex items-center justify-between">
+              <span>{activeBusiness?.name || 'Assigned Vendor'}</span>
+              {executiveProfile && (
+                <button
+                  onClick={() => switchUser(executiveProfile.id)}
+                  className="text-blue-400 hover:text-blue-300 font-medium"
+                >
+                  Exec View
+                </button>
+              )}
+            </div>
+          </div>
+        ) : isHr ? (
+          <div id="sidebar-hr-card" className="bg-slate-850 p-3 rounded-xl border border-purple-500/30 space-y-2">
+            <div className="flex items-center justify-between text-[11px] text-slate-400">
+              <span className="font-semibold text-purple-400 uppercase tracking-wider text-[10px]">
+                HR & People Lead
+              </span>
+              <span className="text-[10px] font-mono text-purple-400 bg-purple-500/10 px-1.5 py-0.5 rounded">
+                LEAD
+              </span>
+            </div>
+            <div>
+              <div className="text-xs font-semibold text-white truncate">
+                {currentUser.name}
+              </div>
+              <div className="text-[10px] text-purple-300 truncate">
+                {currentUser.title}
+              </div>
+            </div>
+            <div className="text-[10px] text-slate-400 pt-1 border-t border-slate-800 flex items-center justify-between">
+              <span>{activeBusiness?.name || 'Headquarters'}</span>
+              {executiveProfile && (
+                <button
+                  onClick={() => switchUser(executiveProfile.id)}
+                  className="text-purple-400 hover:text-purple-300 font-medium"
+                >
+                  Exec View
+                </button>
+              )}
+            </div>
+          </div>
+        ) : isEmployee ? (
           <div id="sidebar-employee-card" className="bg-slate-850 p-3 rounded-xl border border-emerald-500/20 space-y-2">
             <div className="flex items-center justify-between text-[11px] text-slate-400">
               <span className="font-semibold text-emerald-400 uppercase tracking-wider text-[10px]">

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { BusinessProvider, useBusiness } from './context/BusinessContext';
+import { NavigationTab } from './types';
 import { Header } from './components/common/Header';
 import { Sidebar } from './components/common/Sidebar';
 import { AiAdvisorModal } from './components/common/AiAdvisorModal';
@@ -8,6 +9,8 @@ import { QuickAddModal } from './components/common/QuickAddModal';
 // Modules
 import { OverviewDashboard } from './components/modules/OverviewDashboard';
 import { EmployeePortalDashboard } from './components/dashboard/EmployeePortalDashboard';
+import { ClientPortalDashboard } from './components/dashboard/ClientPortalDashboard';
+import { HrPortalDashboard } from './components/dashboard/HrPortalDashboard';
 import { EmployeeRestrictedView } from './components/common/EmployeeRestrictedView';
 import { PersonalFinanceModule } from './components/modules/PersonalFinanceModule';
 import { PartnersModule } from './components/modules/PartnersModule';
@@ -23,45 +26,99 @@ import { DocumentsModule } from './components/modules/DocumentsModule';
 import { MessagesModule } from './components/modules/MessagesModule';
 import { AuditLogsModule } from './components/modules/AuditLogsModule';
 import { SettingsModule } from './components/modules/SettingsModule';
+import { BidBoardModule } from './components/modules/BidBoardModule';
+import { RfisModule } from './components/modules/RfisModule';
+import { DeliverablesModule } from './components/modules/DeliverablesModule';
+import { ResponsesModule } from './components/modules/ResponsesModule';
+import { PricingHubModule } from './components/modules/PricingHubModule';
+import { AttendanceModule } from './components/modules/AttendanceModule';
+
+const MODULE_NAMES: Record<NavigationTab, string> = {
+  'overview': 'Personal Dashboard',
+  'personal-wealth': 'Personal Wealth Command',
+  'partners': 'Partners & Cap Table',
+  'crm': 'Sales Pipeline & CRM',
+  'clients': 'Clients Directory',
+  'billing': 'Quotations & Invoices',
+  'projects': 'Projects & Tasks',
+  'hr-payroll': 'HR & Staff Payroll',
+  'finance': 'Finance & Expenses',
+  'inventory': 'Inventory & Logistics',
+  'reports': 'Executive Reports & P&L',
+  'documents': 'Document Vault',
+  'messages': 'Team Communications',
+  'audit-logs': 'Compliance Audit Trail',
+  'settings': 'Settings & RBAC Governance',
+  'bid-board': 'Bid Board & Estimating',
+  'rfis': 'Requests for Information (RFIs)',
+  'deliverables': 'Deliverables & Submittals',
+  'responses': 'Consultant & Client Responses',
+  'pricing-hub': 'Pricing Hub (Materials & Labor)',
+  'attendance': 'Leaves & Attendance'
+};
 
 const MainContent: React.FC = () => {
-  const { activeTab, isEmployee } = useBusiness();
+  const { activeTab, isEmployee, hasTabPermission, currentUser } = useBusiness();
   const [quickAddOpen, setQuickAddOpen] = useState(false);
 
   const renderActiveModule = () => {
-    // If signed in as an employee, customize routing and enforce permission boundaries
+    // If signed in as an employee, verify dynamic module permission
     if (isEmployee) {
+      const isAllowed = hasTabPermission(activeTab);
+
+      if (!isAllowed) {
+        const moduleLabel = MODULE_NAMES[activeTab] || activeTab;
+        return (
+          <EmployeeRestrictedView
+            moduleName={moduleLabel}
+            description={`Access to the ${moduleLabel} module is currently disabled for your role (${currentUser.title || currentUser.department || 'Employee'}). An administrator can enable access in Settings > Permissions Manager.`}
+          />
+        );
+      }
+
       switch (activeTab) {
         case 'overview':
           return <EmployeePortalDashboard />;
+        case 'bid-board':
+          return <BidBoardModule />;
+        case 'rfis':
+          return <RfisModule />;
+        case 'deliverables':
+          return <DeliverablesModule />;
+        case 'responses':
+          return <ResponsesModule />;
+        case 'pricing-hub':
+          return <PricingHubModule />;
+        case 'attendance':
+          return <AttendanceModule />;
         case 'projects':
           return <ProjectsModule />;
         case 'hr-payroll':
           return <HrPayrollModule />;
         case 'finance':
           return <FinanceModule />;
+        case 'crm':
+          return <CrmModule />;
+        case 'billing':
+          return <BillingModule />;
+        case 'inventory':
+          return <InventoryModule />;
         case 'clients':
           return <ClientsModule />;
         case 'documents':
           return <DocumentsModule />;
         case 'messages':
           return <MessagesModule />;
-        case 'personal-wealth':
-          return <EmployeeRestrictedView moduleName="Personal Wealth Command" />;
-        case 'partners':
-          return <EmployeeRestrictedView moduleName="Partners & Cap Table" />;
-        case 'crm':
-          return <EmployeeRestrictedView moduleName="Sales Pipeline & Lead CRM" />;
-        case 'billing':
-          return <EmployeeRestrictedView moduleName="Invoicing & Quotations" />;
-        case 'inventory':
-          return <EmployeeRestrictedView moduleName="Inventory & Supply Operations" />;
         case 'reports':
-          return <EmployeeRestrictedView moduleName="Executive Reports & P&L" />;
+          return <ReportsModule />;
         case 'audit-logs':
-          return <EmployeeRestrictedView moduleName="Compliance Audit Trail" />;
+          return <AuditLogsModule />;
+        case 'partners':
+          return <PartnersModule />;
+        case 'personal-wealth':
+          return <PersonalFinanceModule />;
         case 'settings':
-          return <EmployeeRestrictedView moduleName="Settings & RBAC Governance" />;
+          return <SettingsModule />;
         default:
           return <EmployeePortalDashboard />;
       }
@@ -70,6 +127,18 @@ const MainContent: React.FC = () => {
     switch (activeTab) {
       case 'overview':
         return <OverviewDashboard />;
+      case 'bid-board':
+        return <BidBoardModule />;
+      case 'rfis':
+        return <RfisModule />;
+      case 'deliverables':
+        return <DeliverablesModule />;
+      case 'responses':
+        return <ResponsesModule />;
+      case 'pricing-hub':
+        return <PricingHubModule />;
+      case 'attendance':
+        return <AttendanceModule />;
       case 'personal-wealth':
         return <PersonalFinanceModule />;
       case 'partners':

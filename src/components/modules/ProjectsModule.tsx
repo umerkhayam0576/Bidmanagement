@@ -184,7 +184,7 @@ export const ProjectsModule: React.FC = () => {
                     </div>
                   </div>
                   <span className="text-[10px] bg-slate-800 text-slate-300 font-mono px-2 py-0.5 rounded font-bold">
-                    {prj.status.replace('_', ' ')}
+                    {(prj.status || '').replace('_', ' ')}
                   </span>
                 </div>
 
@@ -207,10 +207,10 @@ export const ProjectsModule: React.FC = () => {
                 {/* Milestones checklist */}
                 <div className="mt-4 space-y-2 border-t border-slate-800 pt-3">
                   <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                    Milestones ({prj.milestones.filter((m) => m.done).length}/{prj.milestones.length})
+                    Milestones ({(prj.milestones || []).filter((m) => m.done).length}/{(prj.milestones || []).length})
                   </div>
                   <div className="space-y-1.5">
-                    {prj.milestones.map((m) => (
+                    {(prj.milestones || []).map((m) => (
                       <div
                         key={m.id}
                         onClick={() => toggleMilestone(prj.id, m.id)}

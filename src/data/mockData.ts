@@ -71,6 +71,37 @@ export const initialUserProfiles: UserProfile[] = [
     employeeId: 'emp_2',
     businessId: 'biz_apex',
     department: 'ENGINEERING'
+  },
+  {
+    id: 'usr_hr_chloe',
+    name: 'Chloe Lin',
+    email: 'chloe@apexcloud.io',
+    avatar: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=150&auto=format&fit=crop&q=80',
+    title: 'Head of People & HR Operations',
+    globalRole: 'HR_MANAGER',
+    employeeId: 'emp_4',
+    businessId: 'biz_apex',
+    department: 'HR'
+  },
+  {
+    id: 'usr_client_julian',
+    name: 'Julian Montgomery',
+    email: 'j.montgomery@nexuslog.com',
+    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
+    title: 'Managing Director, Nexus Logistics Global',
+    globalRole: 'CLIENT',
+    clientId: 'cli_1',
+    businessId: 'biz_apex'
+  },
+  {
+    id: 'usr_client_claire',
+    name: 'Claire Moreau',
+    email: 'cmoreau@biogen-discovery.com',
+    avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80',
+    title: 'VP Operations, BioGen Discovery Corp',
+    globalRole: 'CLIENT',
+    clientId: 'cli_2',
+    businessId: 'biz_apex'
   }
 ];
 

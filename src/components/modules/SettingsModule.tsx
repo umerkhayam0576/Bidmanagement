@@ -10,10 +10,13 @@ import {
   Save,
   CheckCircle2,
   Lock,
-  RefreshCw
+  RefreshCw,
+  SlidersHorizontal,
+  Users
 } from 'lucide-react';
 import { useBusiness } from '../../context/BusinessContext';
 import { CurrencyCode } from '../../types';
+import { PermissionsManager } from '../settings/PermissionsManager';
 
 export const SettingsModule: React.FC = () => {
   const {
@@ -26,6 +29,9 @@ export const SettingsModule: React.FC = () => {
     businesses,
     formatCurrency
   } = useBusiness();
+
+  // Settings Subtab: 'permissions' (default) | 'entity' | 'personas' | 'matrix'
+  const [activeSubTab, setActiveSubTab] = useState<'permissions' | 'entity' | 'personas' | 'matrix'>('permissions');
 
   const isConsolidated = activeBusinessId === 'CONSOLIDATED';
   const targetBiz = isConsolidated ? businesses[0] : activeBusiness;
@@ -74,20 +80,73 @@ export const SettingsModule: React.FC = () => {
             <Settings className="w-4 h-4" />
             <span>Platform Configuration & Security</span>
           </div>
-          <h1 className="text-xl font-extrabold text-white mt-1">System Settings & RBAC</h1>
+          <h1 className="text-xl font-extrabold text-white mt-1">System Settings & Governance</h1>
           <p className="text-xs text-slate-400 mt-1">
-            Manage entity legal structures, operating currencies, multi-persona access roles, and security policies.
+            Manage granular employee permissions, legal entities, operating currencies, and authorization roles.
           </p>
         </div>
 
-        {savedSuccess && (
-          <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs px-3.5 py-2 rounded-xl font-bold animate-in fade-in">
-            <CheckCircle2 className="w-4 h-4" />
-            <span>Settings Saved Successfully</span>
-          </div>
-        )}
+        {/* Subtab Navigation Pills */}
+        <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 self-start md:self-auto overflow-x-auto">
+          <button
+            id="settings-tab-permissions"
+            onClick={() => setActiveSubTab('permissions')}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
+              activeSubTab === 'permissions'
+                ? 'bg-emerald-500 text-slate-950 shadow-sm'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Shield className="w-3.5 h-3.5" />
+            <span>Permissions Manager</span>
+          </button>
+
+          <button
+            id="settings-tab-entity"
+            onClick={() => setActiveSubTab('entity')}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
+              activeSubTab === 'entity'
+                ? 'bg-emerald-500 text-slate-950 shadow-sm'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Building className="w-3.5 h-3.5" />
+            <span>Entity & Currency</span>
+          </button>
+
+          <button
+            id="settings-tab-personas"
+            onClick={() => setActiveSubTab('personas')}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
+              activeSubTab === 'personas'
+                ? 'bg-emerald-500 text-slate-950 shadow-sm'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <User className="w-3.5 h-3.5" />
+            <span>User Personas</span>
+          </button>
+
+          <button
+            id="settings-tab-matrix"
+            onClick={() => setActiveSubTab('matrix')}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
+              activeSubTab === 'matrix'
+                ? 'bg-emerald-500 text-slate-950 shadow-sm'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Lock className="w-3.5 h-3.5" />
+            <span>SOC-2 Matrix</span>
+          </button>
+        </div>
       </div>
 
+      {/* Subtab: Permissions Manager */}
+      {activeSubTab === 'permissions' && <PermissionsManager />}
+
+      {/* Subtab: Entity Settings & Persona Switching */}
+      {activeSubTab === 'entity' && (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Business Entity Settings */}
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
@@ -229,8 +288,10 @@ export const SettingsModule: React.FC = () => {
           </div>
         </div>
       </div>
+      )}
 
       {/* Role-Based Access Control (RBAC) Matrix */}
+      {activeSubTab === 'matrix' && (
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
         <div className="flex items-center justify-between border-b border-slate-800 pb-3">
           <div className="flex items-center gap-2 text-sm font-bold text-white">
@@ -289,6 +350,65 @@ export const SettingsModule: React.FC = () => {
           </table>
         </div>
       </div>
+      )}
+
+      {/* Subtab: Personas dedicated view */}
+      {activeSubTab === 'personas' && (
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4 max-w-3xl">
+          <div className="flex items-center gap-2 text-sm font-bold text-white border-b border-slate-800 pb-3">
+            <User className="w-4 h-4 text-emerald-400" />
+            <span>Authenticated Personas & Security Testing</span>
+          </div>
+
+          <p className="text-xs text-slate-400">
+            Switch between authenticated executive profiles and employee accounts to verify role-based permissions, navigation filtering, and view restrictions:
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {userProfiles.map((profile) => {
+              const isSelected = profile.id === currentUser.id;
+              return (
+                <div
+                  key={profile.id}
+                  onClick={() => switchUser(profile.id)}
+                  className={`p-3.5 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
+                    isSelected
+                      ? 'bg-emerald-500/10 border-emerald-500/40 shadow-xs'
+                      : 'bg-slate-800/40 border-slate-800 hover:bg-slate-800'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={profile.avatar}
+                      alt={profile.name}
+                      className="w-10 h-10 rounded-lg object-cover border border-slate-700"
+                    />
+                    <div>
+                      <div className="text-xs font-bold text-white">{profile.name}</div>
+                      <div className="text-[11px] text-slate-400">{profile.title}</div>
+                      {profile.department && (
+                        <div className="text-[10px] text-emerald-400 font-mono">
+                          Dept: {profile.department}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <span
+                    className={`text-[10px] px-2 py-0.5 rounded font-mono font-bold ${
+                      isSelected
+                        ? 'bg-emerald-500 text-slate-950'
+                        : 'bg-slate-800 text-slate-400'
+                    }`}
+                  >
+                    {profile.globalRole}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

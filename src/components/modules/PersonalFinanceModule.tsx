@@ -277,7 +277,7 @@ export const PersonalFinanceModule: React.FC = () => {
                 <div>
                   <div className="text-xs font-bold text-white">{asset.title}</div>
                   <div className="text-[10px] text-slate-400 flex items-center gap-2 mt-0.5">
-                    <span className="font-mono text-emerald-400">{asset.category.replace('_', ' ')}</span>
+                    <span className="font-mono text-emerald-400">{(asset.category || '').replace('_', ' ')}</span>
                     {asset.institution && <span>• {asset.institution}</span>}
                   </div>
                   {asset.notes && <div className="text-[10px] text-slate-400 mt-1 italic">{asset.notes}</div>}
@@ -378,7 +378,7 @@ export const PersonalFinanceModule: React.FC = () => {
                   <td className="py-2.5 px-3 font-bold text-white">{draw.source}</td>
                   <td className="py-2.5 px-3">
                     <span className="bg-slate-800 text-slate-300 px-2 py-0.5 rounded font-mono text-[10px]">
-                      {draw.type.replace('_', ' ')}
+                      {(draw.type || '').replace('_', ' ')}
                     </span>
                   </td>
                   <td className="py-2.5 px-3 text-right font-mono font-bold text-emerald-400">

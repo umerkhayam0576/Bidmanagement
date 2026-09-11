@@ -17,7 +17,13 @@ import {
   Users,
   Eye,
   ShieldAlert,
-  ArrowUpRight
+  ArrowUpRight,
+  HelpCircle,
+  FileCheck,
+  Reply,
+  Coins,
+  CalendarClock,
+  ChevronRight
 } from 'lucide-react';
 import { useBusiness } from '../../context/BusinessContext';
 import { Task, LeaveRequest, ExpenseCategory, Department } from '../../types';
@@ -26,7 +32,7 @@ export const EmployeePortalDashboard: React.FC = () => {
   const {
     currentUser,
     currentEmployee,
-    employees,
+    filteredEmployees,
     activeBusiness,
     filteredProjects,
     filteredTasks,
@@ -36,10 +42,19 @@ export const EmployeePortalDashboard: React.FC = () => {
     submitLeaveRequest,
     filteredExpenses,
     addExpense,
-    payrollRuns,
+    filteredPayrollRuns,
     formatCurrency,
     userProfiles,
-    switchUser
+    switchUser,
+    setActiveTab,
+    bids = [],
+    rfis = [],
+    deliverables = [],
+    responses = [],
+    materialCosts = [],
+    laborCosts = [],
+    attendanceRecords = [],
+    isClockedIn = false
   } = useBusiness();
 
   // Active section tab within employee portal
@@ -145,6 +160,17 @@ export const EmployeePortalDashboard: React.FC = () => {
     .reduce((sum, r) => sum + r.days, 0);
   const totalAnnualAllowance = 25;
   const remainingLeaveDays = Math.max(0, totalAnnualAllowance - usedLeaveDays);
+
+  // Today's attendance record
+  const todayAttendance = useMemo(() => {
+    const empId = empData.id;
+    const todayStr = new Date().toISOString().split('T')[0];
+    return (
+      attendanceRecords.find(
+        (r) => (r.employeeId === empId || r.employeeId === currentUser.employeeId) && r.date === todayStr
+      ) || null
+    );
+  }, [attendanceRecords, empData.id, currentUser.employeeId]);
 
   // Executive user to switch back to if desired
   const executiveProfile = userProfiles.find(
@@ -329,7 +355,7 @@ export const EmployeePortalDashboard: React.FC = () => {
             </div>
           </div>
           <div className="text-[11px] text-muted-foreground pt-1 border-t border-border flex items-center justify-between">
-            <span>Bank: {empData.bankAccount.replace(/(.+)(.{4})$/, '****$2')}</span>
+            <span>Bank: {empData.bankAccount ? empData.bankAccount.replace(/(.+)(.{4})$/, '****$2') : 'Direct Deposit'}</span>
             <span className="text-primary font-medium">Next: End of Month</span>
           </div>
         </div>
@@ -420,6 +446,148 @@ export const EmployeePortalDashboard: React.FC = () => {
         </div>
       </div>
 
+      {/* Engineering, Field & Shift Quick-Access Command Deck */}
+      <div className="bg-slate-900/90 border border-slate-800/90 rounded-2xl p-5 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-slate-800">
+          <div>
+            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+              Engineering, Costing & Shift Hub
+            </h3>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Instant access to your bid estimates, technical RFIs, submittals, consultant feedback, and pricing database.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-mono text-slate-400 bg-slate-800 px-2 py-1 rounded-lg border border-slate-700">
+              Shift: {isClockedIn ? 'ON CLOCK' : todayAttendance ? todayAttendance.status : 'OFF DUTY'}
+            </span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-4">
+          {/* 1. Bid Board */}
+          <button
+            onClick={() => setActiveTab('bid-board')}
+            className="group p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/80 hover:border-emerald-500/50 hover:bg-slate-850 transition-all text-left flex flex-col justify-between"
+          >
+            <div className="flex items-center justify-between w-full">
+              <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 group-hover:bg-emerald-500/20 transition-colors">
+                <Briefcase className="w-4 h-4" />
+              </div>
+              <ChevronRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-emerald-400 transition-colors" />
+            </div>
+            <div className="mt-3">
+              <div className="text-lg font-bold text-white font-mono">
+                {bids?.length || 0}
+              </div>
+              <div className="text-xs font-medium text-slate-300">Bid Board</div>
+              <div className="text-[10px] text-slate-500">Tenders & Estimates</div>
+            </div>
+          </button>
+
+          {/* 2. RFIs */}
+          <button
+            onClick={() => setActiveTab('rfis')}
+            className="group p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/80 hover:border-blue-500/50 hover:bg-slate-850 transition-all text-left flex flex-col justify-between"
+          >
+            <div className="flex items-center justify-between w-full">
+              <div className="p-2 rounded-lg bg-blue-500/10 text-blue-400 group-hover:bg-blue-500/20 transition-colors">
+                <HelpCircle className="w-4 h-4" />
+              </div>
+              <ChevronRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-blue-400 transition-colors" />
+            </div>
+            <div className="mt-3">
+              <div className="text-lg font-bold text-white font-mono">
+                {(rfis || []).filter((r) => r.status === 'OPEN').length}
+              </div>
+              <div className="text-xs font-medium text-slate-300">Open RFIs</div>
+              <div className="text-[10px] text-slate-500">Technical Inquiries</div>
+            </div>
+          </button>
+
+          {/* 3. Deliverables */}
+          <button
+            onClick={() => setActiveTab('deliverables')}
+            className="group p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/80 hover:border-amber-500/50 hover:bg-slate-850 transition-all text-left flex flex-col justify-between"
+          >
+            <div className="flex items-center justify-between w-full">
+              <div className="p-2 rounded-lg bg-amber-500/10 text-amber-400 group-hover:bg-amber-500/20 transition-colors">
+                <FileCheck className="w-4 h-4" />
+              </div>
+              <ChevronRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-amber-400 transition-colors" />
+            </div>
+            <div className="mt-3">
+              <div className="text-lg font-bold text-white font-mono">
+                {deliverables?.length || 0}
+              </div>
+              <div className="text-xs font-medium text-slate-300">Deliverables</div>
+              <div className="text-[10px] text-slate-500">Shop Drawings / Pkgs</div>
+            </div>
+          </button>
+
+          {/* 4. Responses */}
+          <button
+            onClick={() => setActiveTab('responses')}
+            className="group p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/80 hover:border-purple-500/50 hover:bg-slate-850 transition-all text-left flex flex-col justify-between"
+          >
+            <div className="flex items-center justify-between w-full">
+              <div className="p-2 rounded-lg bg-purple-500/10 text-purple-400 group-hover:bg-purple-500/20 transition-colors">
+                <Reply className="w-4 h-4" />
+              </div>
+              <ChevronRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-purple-400 transition-colors" />
+            </div>
+            <div className="mt-3">
+              <div className="text-lg font-bold text-white font-mono">
+                {responses?.length || 0}
+              </div>
+              <div className="text-xs font-medium text-slate-300">Responses</div>
+              <div className="text-[10px] text-slate-500">Reviews & Dispositions</div>
+            </div>
+          </button>
+
+          {/* 5. Pricing Hub */}
+          <button
+            onClick={() => setActiveTab('pricing-hub')}
+            className="group p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/80 hover:border-yellow-500/50 hover:bg-slate-850 transition-all text-left flex flex-col justify-between"
+          >
+            <div className="flex items-center justify-between w-full">
+              <div className="p-2 rounded-lg bg-yellow-500/10 text-yellow-400 group-hover:bg-yellow-500/20 transition-colors">
+                <Coins className="w-4 h-4" />
+              </div>
+              <ChevronRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-yellow-400 transition-colors" />
+            </div>
+            <div className="mt-3">
+              <div className="text-lg font-bold text-white font-mono">
+                {(materialCosts?.length || 0) + (laborCosts?.length || 0)}
+              </div>
+              <div className="text-xs font-medium text-slate-300">Pricing Hub</div>
+              <div className="text-[10px] text-slate-500">Material & Labor Rates</div>
+            </div>
+          </button>
+
+          {/* 6. Attendance & Shift */}
+          <button
+            onClick={() => setActiveTab('attendance')}
+            className="group p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/80 hover:border-teal-500/50 hover:bg-slate-850 transition-all text-left flex flex-col justify-between"
+          >
+            <div className="flex items-center justify-between w-full">
+              <div className="p-2 rounded-lg bg-teal-500/10 text-teal-400 group-hover:bg-teal-500/20 transition-colors">
+                <CalendarClock className="w-4 h-4" />
+              </div>
+              <ChevronRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-teal-400 transition-colors" />
+            </div>
+            <div className="mt-3">
+              <div className="text-lg font-bold text-white font-mono">
+                {isClockedIn ? 'On Clock' : todayAttendance?.clockOutTime ? 'Shift Done' : 'Punch In'}
+              </div>
+              <div className="text-xs font-medium text-slate-300">Attendance</div>
+              <div className="text-[10px] text-slate-500">Shift Clock & Leaves</div>
+            </div>
+          </button>
+        </div>
+      </div>
+
       {/* Navigation Sub-Tabs for Employee Workspace */}
       <div className="flex flex-wrap items-center gap-2 border-b border-border pb-3">
         <button
@@ -484,7 +652,7 @@ export const EmployeePortalDashboard: React.FC = () => {
           }`}
         >
           <Users className="w-4 h-4" />
-          Team & Department ({employees.filter((e) => e.businessId === empData.businessId).length})
+          Team & Department ({(filteredEmployees || []).filter((e) => e.businessId === empData.businessId).length})
         </button>
       </div>
 
@@ -707,7 +875,7 @@ export const EmployeePortalDashboard: React.FC = () => {
           <div className="bg-card border border-border rounded-xl p-4 shadow-xs space-y-3">
             <h4 className="text-sm font-semibold text-foreground">Recent Payroll Disbursements</h4>
             <div className="divide-y divide-border">
-              {payrollRuns
+              {(filteredPayrollRuns || [])
                 .filter((pr) => pr.businessId === empData.businessId)
                 .slice(0, 4)
                 .map((run) => (
@@ -829,7 +997,7 @@ export const EmployeePortalDashboard: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {employees
+            {(filteredEmployees || [])
               .filter((e) => e.businessId === empData.businessId)
               .map((colleague) => (
                 <div
